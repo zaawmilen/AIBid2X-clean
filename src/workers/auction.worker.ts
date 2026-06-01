@@ -11,7 +11,11 @@ import { env } from '../config/env.js';
 
 export function createAuctionWorker() {
   const connection = getQueueConnection();
-  const publisher = new Redis(env.REDIS_URL);
+  const publisher = new Redis(env.REDIS_URL, {
+    maxRetriesPerRequest: null,
+    enableOfflineQueue: false,
+    lazyConnect: true,
+  },);
 
   const worker = new Worker<ExpireAuctionJob>('auction-jobs', async (job: Job<ExpireAuctionJob>) => {
     const { auctionId } = job.data;
