@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: aibid2x
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/server.js
+    envVarGroups: []
