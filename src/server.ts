@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import http from 'http';
 import express from 'express';
+import helmet from 'helmet';
 
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
@@ -44,7 +45,9 @@ function assertRouter(name: string, router: any) {
 
 async function bootstrap() {
   const app = express();
+  app.use(helmet());
   app.disable('x-powered-by');
+  
   await redis.connect();
 
   logger.info('Redis connected');
