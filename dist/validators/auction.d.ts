@@ -122,7 +122,35 @@ export declare const placeBidSchema: z.ZodObject<{
         amount: number;
     };
 }>;
+export declare const listBidsQuerySchema: z.ZodObject<{
+    query: z.ZodObject<{
+        status: z.ZodOptional<z.ZodEnum<["active", "outbid", "winning", "won", "invalid"]>>;
+        page: z.ZodDefault<z.ZodNumber>;
+        limit: z.ZodDefault<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        limit: number;
+        page: number;
+        status?: "active" | "outbid" | "winning" | "won" | "invalid" | undefined;
+    }, {
+        status?: "active" | "outbid" | "winning" | "won" | "invalid" | undefined;
+        limit?: number | undefined;
+        page?: number | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    query: {
+        limit: number;
+        page: number;
+        status?: "active" | "outbid" | "winning" | "won" | "invalid" | undefined;
+    };
+}, {
+    query: {
+        status?: "active" | "outbid" | "winning" | "won" | "invalid" | undefined;
+        limit?: number | undefined;
+        page?: number | undefined;
+    };
+}>;
 export type CreateAuctionInput = z.infer<typeof createAuctionSchema>['body'];
 export type ListAuctionsQuery = z.infer<typeof listAuctionsSchema>['query'];
 export type PlaceBidInput = z.infer<typeof placeBidSchema>['body'];
+export type ListBidsQuery = z.infer<typeof listBidsQuerySchema>['query'];
 //# sourceMappingURL=auction.d.ts.map

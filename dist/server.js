@@ -1,12 +1,13 @@
 import 'dotenv/config';
 import http from 'http';
 import express from 'express';
+import helmet from 'helmet';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
-import { redis, closeRedis } from './lib/redis.js';
+import { redis } from './lib/redis.js';
 import { closeDatabasePool } from './db/index.js';
 import { correlationId } from './middleware/correlationId.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -19,6 +20,7 @@ import { auctionRouter } from './routes/auctions.js';
 import { analysisRouter } from './routes/analysis.js';
 import { searchRouter } from './routes/search.js';
 import { metricsRouter } from './routes/metrics.js';
+import { bidsRouter } from './routes/bids.js';
 import { createWebSocketServer, broadcastToAuction } from './lib/websocket.js';
 import { startAuctionEventSubscriber } from './lib/pubsub.js';
 import { auctionQueue, notificationQueue, embeddingQueue } from './queues/index.js';
@@ -34,6 +36,8 @@ function assertRouter(name, router) {
 }
 async function bootstrap() {
     const app = express();
+    app.use(helmet());
+    app.disable('x-powered-by');
     await redis.connect();
     logger.info('Redis connected');
     startAuctionEventSubscriber((event) => broadcastToAuction(event.auctionId, event));
@@ -57,6 +61,7 @@ async function bootstrap() {
     app.use('/api/v1/auth', apiRateLimit, authRouter);
     app.use('/api/v1/auctions', apiRateLimit, auctionRouter);
     app.use('/api/v1/auctions/:id/analysis', analysisRouter);
+    app.use('/api/v1/bids', apiRateLimit, requireAuth, bidsRouter);
     app.use('/api/v1/search', searchRouter);
     app.use('/api/v1/metrics', metricsRouter);
     /**
@@ -67,6 +72,7 @@ async function bootstrap() {
     assertRouter('authRouter', authRouter);
     assertRouter('auctionRouter', auctionRouter);
     assertRouter('analysisRouter', analysisRouter);
+    assertRouter('bidsRouter', bidsRouter);
     assertRouter('searchRouter', searchRouter);
     assertRouter('metricsRouter', metricsRouter);
     /**
@@ -94,7 +100,17 @@ async function bootstrap() {
         httpServer.close(async () => {
             await Promise.all([
                 closeDatabasePool(),
-                closeRedis(),
+                // redis client may expose quit() (node-redis) or disconnect() (ioredis)
+                (async () => {
+                    if (redis) {
+                        if (typeof redis.quit === 'function') {
+                            await redis.quit();
+                        }
+                        else if (typeof redis.disconnect === 'function') {
+                            await redis.disconnect();
+                        }
+                    }
+                })(),
                 auctionQueue.close(),
                 notificationQueue.close(),
                 embeddingQueue.close(),

@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, count, desc } from 'drizzle-orm';
 import { Decimal } from 'decimal.js';
 import { db } from '../db/index.js';
 import { auctions, bids, users } from '../db/schema.js';
@@ -6,6 +6,7 @@ import { AppError } from '../lib/errors.js';
 import { broadcastToAuction } from '../lib/websocket.js';
 import { notificationQueue } from '../queues/index.js';
 import { logger } from '../lib/logger.js';
+// ── Place Bid ─────────────────────────────────────────────────────────────────
 export async function placeBid(auctionId, bidderId, amount) {
     const bidAmount = new Decimal(amount.toFixed(2));
     const newBid = await db.transaction(async (tx) => {
@@ -54,5 +55,81 @@ export async function placeBid(auctionId, bidderId, amount) {
         }
     }
     return newBid.bid;
+}
+export async function getMyBids(bidderId, { page, limit, status }) {
+    const offset = (page - 1) * limit;
+    // Build status filter — valid bid statuses: active | outbid | winning | won | invalid
+    const validStatuses = ['active', 'outbid', 'winning', 'won', 'invalid'];
+    const statusFilter = status && validStatuses.includes(status)
+        ? eq(bids.status, status)
+        : undefined;
+    const whereClause = statusFilter
+        ? and(eq(bids.bidderId, bidderId), statusFilter)
+        : eq(bids.bidderId, bidderId);
+    const [rows, totalRows] = await Promise.all([
+        db
+            .select({
+            id: bids.id,
+            amount: bids.amount,
+            status: bids.status,
+            createdAt: bids.createdAt,
+            auction: {
+                id: auctions.id,
+                title: auctions.title,
+                status: auctions.status,
+                currentPrice: auctions.currentPrice,
+                endTime: auctions.endTime,
+            },
+        })
+            .from(bids)
+            .innerJoin(auctions, eq(bids.auctionId, auctions.id))
+            .where(whereClause)
+            .orderBy(desc(bids.createdAt))
+            .limit(limit)
+            .offset(offset),
+        db
+            .select({ total: count() })
+            .from(bids)
+            .where(whereClause),
+    ]);
+    const total = Number(totalRows?.[0]?.total ?? 0);
+    return {
+        bids: rows,
+        pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+        },
+    };
+}
+// ── Get Single Bid by ID ──────────────────────────────────────────────────────
+export async function getBidById(bidId, requesterId, requesterRole) {
+    const [row] = await db
+        .select({
+        id: bids.id,
+        amount: bids.amount,
+        status: bids.status,
+        createdAt: bids.createdAt,
+        bidderId: bids.bidderId,
+        auction: {
+            id: auctions.id,
+            title: auctions.title,
+            status: auctions.status,
+            currentPrice: auctions.currentPrice,
+            endTime: auctions.endTime,
+        },
+    })
+        .from(bids)
+        .innerJoin(auctions, eq(bids.auctionId, auctions.id))
+        .where(eq(bids.id, bidId))
+        .limit(1);
+    if (!row)
+        throw AppError.notFound('Bid');
+    // Bidders can only view their own bids; admins can view any
+    if (requesterRole !== 'admin' && row.bidderId !== requesterId) {
+        throw AppError.forbidden('You do not have access to this bid');
+    }
+    return row;
 }
 //# sourceMappingURL=bid.service.js.map

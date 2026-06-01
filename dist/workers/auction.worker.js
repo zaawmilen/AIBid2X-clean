@@ -9,7 +9,11 @@ import { logger } from '../lib/logger.js';
 import { env } from '../config/env.js';
 export function createAuctionWorker() {
     const connection = getQueueConnection();
-    const publisher = new Redis(env.REDIS_URL);
+    const publisher = new Redis(env.REDIS_URL, {
+        maxRetriesPerRequest: null,
+        enableOfflineQueue: false,
+        lazyConnect: true,
+    });
     const worker = new Worker('auction-jobs', async (job) => {
         const { auctionId } = job.data;
         logger.info({ auctionId, jobId: job.id }, 'Processing auction expiry');
