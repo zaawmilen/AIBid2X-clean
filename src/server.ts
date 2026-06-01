@@ -9,7 +9,7 @@ import { ExpressAdapter } from '@bull-board/express';
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { redis } from './lib/redis.js';
-import { initCache, closeCache } from './lib/cache.js';
+
 import { closeDatabasePool } from './db/index.js';
 
 import { correlationId } from './middleware/correlationId.js';
@@ -44,7 +44,6 @@ function assertRouter(name: string, router: any) {
 async function bootstrap() {
   const app = express();
 
-  await initCache();
   await redis.connect();
 
   logger.info('Redis connected');
@@ -128,21 +127,25 @@ async function bootstrap() {
     logger.info({ signal }, 'Shutdown signal received');
 
     httpServer.close(async () => {
-      try {
-        await Promise.all([
+      await Promise.all([
           closeDatabasePool(),
-          closeCache(),
-          auctionQueue.close(),
-          notificationQueue.close(),
-          embeddingQueue.close(),
-        ]);
+          // redis client may expose quit() (node-redis) or disconnect() (ioredis)
+          (async () => {
+            if (redis) {
+              if (typeof (redis as any).quit === 'function') {
+                await (redis as any).quit();
+              } else if (typeof (redis as any).disconnect === 'function') {
+                await (redis as any).disconnect();
+              }
+            }
+          })(),
+        auctionQueue.close(),
+        notificationQueue.close(),
+        embeddingQueue.close(),
+      ]);
 
-        logger.info('All connections closed — exiting');
-        process.exit(0);
-      } catch (err) {
-        logger.error({ err }, 'Error during shutdown');
-        process.exit(1);
-      }
+      logger.info('All connections closed — exiting');
+      process.exit(0);
     });
 
     setTimeout(() => process.exit(1), 10_000);

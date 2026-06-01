@@ -2,42 +2,29 @@ import Redis from 'ioredis';
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
 
-let ioredisAvailable = false;
-
-// ioredis (legacy - NOT blocking startup)
-// Fix for TS: ioredis import may not be recognized as constructable depending on tsconfig
-const RedisClient = Redis as unknown as new (connection: string, opts?: Record<string, unknown>) => any;
-
-export const redis = new RedisClient(env.REDIS_URL, {
-  maxRetriesPerRequest: 1,
+export const redis = new (Redis as any)(env.REDIS_URL, {
+  maxRetriesPerRequest: null,
   enableOfflineQueue: false,
   lazyConnect: true,
-});
-
-redis.on('ready', () => {
-  ioredisAvailable = true;
-  logger.info('ioredis ready');
-});
-
-redis.on('error', (err: Error) => {
-  ioredisAvailable = false;
-  logger.warn({ err }, 'ioredis error (non-fatal)');
-});
-
-// SAFE wrappers
-export async function safeRedisGet(key: string) {
-  if (!ioredisAvailable) return null;
-  try {
-    return await redis.get(key);
-  } catch {
-    return null;
+  retryStrategy(times: number) {
+    const delay = Math.min(times * 100, 2000);
+    logger.warn(`Redis connection lost. Attempting to reconnect (#${times}) in ${delay}ms...`);
+    return delay;
   }
+});
+
+redis.on('connect', () => logger.info('Redis connected'));
+redis.on('ready', () => logger.debug('Redis ready'));
+redis.on('error', (err: Error) => logger.error({ err }, 'Redis error'));
+redis.on('close', () => logger.warn('Redis connection closed'));
+redis.on('reconnecting', () => logger.warn('Redis reconnecting'));
+
+export async function checkRedisConnection(): Promise<void> {
+  const pong = await redis.ping();
+  if (pong !== 'PONG') throw new Error(`Unexpected Redis ping response: ${pong}`);
 }
 
-export async function safeRedisSet(key: string, value: string, ttl?: number) {
-  if (!ioredisAvailable) return;
-  try {
-    if (ttl) await redis.set(key, value, 'EX', ttl);
-    else await redis.set(key, value);
-  } catch {}
+export async function closeRedis(): Promise<void> {
+  await redis.quit();
+  logger.info('Redis connection closed');
 }
