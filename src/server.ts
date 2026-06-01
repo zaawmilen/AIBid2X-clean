@@ -82,7 +82,7 @@ async function bootstrap() {
   app.use('/api/v1/auth', apiRateLimit, authRouter);
   app.use('/api/v1/auctions', apiRateLimit, auctionRouter);
   app.use('/api/v1/auctions/:id/analysis', analysisRouter);
-  app.use('/api/v1/bids', apiRateLimit, bidsRouter);
+  app.use('/api/v1/bids', apiRateLimit, requireAuth, bidsRouter);
   app.use('/api/v1/search', searchRouter);
   app.use('/api/v1/metrics', metricsRouter);
 
