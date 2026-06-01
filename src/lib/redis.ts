@@ -28,3 +28,25 @@ export async function closeRedis(): Promise<void> {
   await redis.quit();
   logger.info('Redis connection closed');
 }
+// ── APPEND to the bottom of src/lib/redis.ts ─────────────────────────────────
+
+export async function safeRedisGet(key: string): Promise<string | null> {
+  try {
+    return await redis.get(key);
+  } catch (err) {
+    logger.warn({ err, key }, 'Redis GET failed — cache miss');
+    return null;
+  }
+}
+
+export async function safeRedisSet(key: string, value: string, ttlSeconds?: number): Promise<void> {
+  try {
+    if (ttlSeconds !== undefined) {
+      await redis.set(key, value, 'EX', ttlSeconds);
+    } else {
+      await redis.set(key, value);
+    }
+  } catch (err) {
+    logger.warn({ err, key }, 'Redis SET failed — skipping cache write');
+  }
+}
