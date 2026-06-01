@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck-and-build:
+    name: Typecheck & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  integration:
+    name: Integration Health Check
+    runs-on: ubuntu-latest
+    needs: typecheck-and-build
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: auction_user
+          POSTGRES_PASSWORD: auction_pass
+          POSTGRES_DB: auction_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U auction_user -d auction_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://auction_user:auction_pass@localhost:5432/auction_db
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci_access_secret_minimum_32_characters_long
+      JWT_REFRESH_SECRET: ci_refresh_secret_minimum_32_characters_long
+      PORT: 3000
+      NODE_ENV: test
+      DB_POOL_MAX: 5
+      APP_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Enable database extensions
+        run: |
+          PGPASSWORD=auction_pass psql -h localhost -U auction_user -d auction_db \
+            -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";" \
+            -c "CREATE EXTENSION IF NOT EXISTS vector;"
+      - name: Run database migrations
+        run: npm run db:generate && npm run db:migrate
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Copy migrations to dist
+        run: cp -r src/db/migrations dist/db/migrations 2>/dev/null || true
+      - name: Start server and run health checks
+        run: |
+          node dist/server.js &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/healthz > /dev/null 2>&1; then
+              echo "✅ Server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          curl -sf http://localhost:3000/healthz | jq .
+          READYZ=$(curl -sf http://localhost:3000/readyz)
+          echo $READYZ | jq .
+          echo $READYZ | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if d['status']=='ready' else 1)"
+          kill $SERVER_PID
+          echo "✅ All health checks passed"
