@@ -43,7 +43,7 @@ function assertRouter(name: string, router: any) {
 
 async function bootstrap() {
   const app = express();
-
+  app.disable('x-powered-by');
   await redis.connect();
 
   logger.info('Redis connected');
