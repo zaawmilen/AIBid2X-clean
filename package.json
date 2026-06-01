@@ -1,8 +1,8 @@
 {
   "name": "auction-platform",
   "version": "0.1.0",
-     "type": "module",
-    "engines": {
+  "type": "module",
+  "engines": {
     "node": ">=20"
   },
   "scripts": {
@@ -16,8 +16,6 @@
     "worker": "tsx watch src/worker.ts",
     "db:vector-index": "tsx src/db/createVectorIndex.ts",
     "db:migrate:prod": "tsx src/db/migrate.ts"
-    
-    
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.0",
@@ -26,6 +24,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/ws": "^8.18.1",
+    "@upstash/redis": "^1.38.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.77.6",
     "decimal.js": "^10.6.0",
@@ -60,5 +59,4 @@
   "keywords": [],
   "author": "",
   "license": "ISC"
-
 }
