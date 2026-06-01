@@ -41,6 +41,16 @@ export const placeBidSchema = z.object({
   }),
 });
 
+// ── NEW: List bids query (for GET /api/v1/bids/my) ────────────────────────────
+export const listBidsQuerySchema = z.object({
+  query: z.object({
+    status: z.enum(['active', 'outbid', 'winning', 'won', 'invalid']).optional(),
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(100).default(20),
+  }),
+});
+
 export type CreateAuctionInput = z.infer<typeof createAuctionSchema>['body'];
 export type ListAuctionsQuery = z.infer<typeof listAuctionsSchema>['query'];
 export type PlaceBidInput = z.infer<typeof placeBidSchema>['body'];
+export type ListBidsQuery = z.infer<typeof listBidsQuerySchema>['query'];
