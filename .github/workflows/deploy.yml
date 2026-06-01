@@ -10,16 +10,16 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy to Fly.io
+    name: Deploy to Render
     runs-on: ubuntu-latest
     environment: production
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Fly.io CLI
-        uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Deploy to Fly.io
-        run: flyctl deploy --remote-only --wait-timeout 120
+      - name: Setup Render CLI
+        uses: render-actions/setup-render@master
+      - name: Deploy to Render
+        run: render deploy
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - name: Verify deployment health
