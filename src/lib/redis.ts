@@ -1,23 +1,37 @@
 import Redis from 'ioredis';
+import type { Redis as RedisClient } from 'ioredis';
 import { env } from '../config/env.js';
-import { logger } from '../lib/logger.js';
+import { logger } from './logger.js';
 
-export const redis = new (Redis as any)(env.REDIS_URL, {
-  maxRetriesPerRequest: null,
-  enableOfflineQueue: false,
+const isTLS = env.REDIS_URL.startsWith('rediss://');
+
+// `ioredis`'s module type can sometimes not expose a construct signature to TS.
+// Cast to a constructor type to satisfy the compiler while keeping runtime behavior.
+export const redis = new (Redis as unknown as new (url: string, opts?: any) => RedisClient)(
+  env.REDIS_URL,
+  {
+  maxRetriesPerRequest: 3,
+  // true = queue commands while reconnecting instead of failing them immediately.
+  // Upstash closes idle connections — we need to tolerate brief disconnects.
+  enableOfflineQueue: true,
   lazyConnect: true,
+  // Retry with exponential backoff, capped at 2s
   retryStrategy(times: number) {
-    const delay = Math.min(times * 100, 2000);
-    logger.warn(`Redis connection lost. Attempting to reconnect (#${times}) in ${delay}ms...`);
-    return delay;
-  }
+    if (times > 10) return null; // give up after 10 attempts
+    return Math.min(times * 100, 2000);
+  },
+  reconnectOnError(err: Error) {
+    // Reconnect on ECONNRESET and ETIMEDOUT — common with Upstash idle timeouts
+    return err.message.includes('ECONNRESET') || err.message.includes('ETIMEDOUT');
+  },
+  ...(isTLS && { tls: {} }),
 });
 
-redis.on('connect', () => logger.info('Redis connected'));
-redis.on('ready', () => logger.debug('Redis ready'));
-redis.on('error', (err: Error) => logger.error({ err }, 'Redis error'));
-redis.on('close', () => logger.warn('Redis connection closed'));
-redis.on('reconnecting', () => logger.warn('Redis reconnecting'));
+redis.on('connect',     () => logger.info('Redis connected'));
+redis.on('ready',       () => logger.debug('Redis ready'));
+redis.on('error',       (err: Error) => logger.error({ err }, 'Redis error'));
+redis.on('close',       () => logger.warn('Redis connection closed'));
+redis.on('reconnecting',() => logger.warn('Redis reconnecting'));
 
 export async function checkRedisConnection(): Promise<void> {
   const pong = await redis.ping();
@@ -27,26 +41,4 @@ export async function checkRedisConnection(): Promise<void> {
 export async function closeRedis(): Promise<void> {
   await redis.quit();
   logger.info('Redis connection closed');
-}
-// ── APPEND to the bottom of src/lib/redis.ts ─────────────────────────────────
-
-export async function safeRedisGet(key: string): Promise<string | null> {
-  try {
-    return await redis.get(key);
-  } catch (err) {
-    logger.warn({ err, key }, 'Redis GET failed — cache miss');
-    return null;
-  }
-}
-
-export async function safeRedisSet(key: string, value: string, ttlSeconds?: number): Promise<void> {
-  try {
-    if (ttlSeconds !== undefined) {
-      await redis.set(key, value, 'EX', ttlSeconds);
-    } else {
-      await redis.set(key, value);
-    }
-  } catch (err) {
-    logger.warn({ err, key }, 'Redis SET failed — skipping cache write');
-  }
 }
