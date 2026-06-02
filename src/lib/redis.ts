@@ -29,7 +29,11 @@ export const redis = new (Redis as unknown as new (url: string, opts?: any) => R
 
 redis.on('connect',     () => logger.info('Redis connected'));
 redis.on('ready',       () => logger.debug('Redis ready'));
-redis.on('error',       (err: Error) => logger.error({ err }, 'Redis error'));
+redis.on('error', (err: unknown) => {
+  // err may not be a JS Error with a `code` property; guard access to avoid TS error
+  const code = (err as any)?.code as string | undefined;
+  if (code !== 'ECONNRESET') logger.error({ err }, 'Redis error');
+});
 redis.on('close',       () => logger.warn('Redis connection closed'));
 redis.on('reconnecting',() => logger.warn('Redis reconnecting'));
 
