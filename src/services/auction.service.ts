@@ -38,7 +38,7 @@ export async function createAuction(sellerId: string, input: CreateAuctionInput)
     reservePrice: input.reservePrice?.toFixed(2) ?? null,
     currentPrice: startingPriceStr,
     status: 'draft',
-    endTime: new Date(input.endTime),
+    endTime: new Date(Date.now() + 60_000),
   }).returning();
 
   if (!auction) throw AppError.internal('Failed to create auction');

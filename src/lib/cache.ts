@@ -1,30 +1,41 @@
 import { upstashRedis } from './redis.upstash.js';
-import { safeRedisGet, safeRedisSet } from './redis.js';
+import { redis as ioredis } from './redis.js';
+import { logger } from '../lib/logger.js';
 
-// FEATURE SWITCH
 const USE_UPSTASH = true;
 
-export async function cacheGet(key: string) {
-  if (USE_UPSTASH) {
+// ----------------------
+// SAFE INIT (NON-BLOCKING)
+// ----------------------
+export async function initCache() {
+  if (!USE_UPSTASH && ioredis) {
     try {
-      return await upstashRedis.get(key);
-    } catch {
-      return null;
+      await ioredis.connect?.();
+      logger.info('ioredis connected');
+    } catch (err) {
+      logger.warn({ err }, 'ioredis init failed (non-fatal)');
     }
   }
-
-  return safeRedisGet(key);
 }
 
-export async function cacheSet(key: string, value: any, ttl?: number) {
-  if (USE_UPSTASH) {
-    try {
-      const opts = ttl !== undefined ? { ex: ttl } : undefined;
-      return await upstashRedis.set(key, value, opts);
-    } catch {
+// ----------------------
+// SAFE SHUTDOWN (IMPORTANT)
+// ----------------------
+export async function closeCache() {
+  try {
+    if (USE_UPSTASH) {
+      // Upstash REST: nothing to close
       return;
     }
-  }
 
-  return safeRedisSet(key, JSON.stringify(value), ttl);
+    if (ioredis) {
+      if (typeof (ioredis as any).quit === 'function') {
+        await (ioredis as any).quit();
+      } else if (typeof (ioredis as any).disconnect === 'function') {
+        await (ioredis as any).disconnect();
+      }
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Cache shutdown failed (ignored)');
+  }
 }

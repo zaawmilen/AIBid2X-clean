@@ -1,26 +1,27 @@
 
-  // Visit https://aka.ms/tsconfig to read more about this file
+// Visit https://aka.ms/tsconfig to read more about this file
 {
   "compilerOptions": {
     // File Layout
+     
      "rootDir": "./src",
      "outDir": "./dist",
+     
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     "moduleResolution": "NodeNext",  
     "target": "esnext",
-    "types": [],
+    "types": ["vitest/globals", "node"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
-    // and npm install -D @types/node
-
-    // Other Outputs
+    // and npm install -D @types/node,
+    
     "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
+    "declaration": false,
+   
 
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
@@ -42,5 +43,8 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-  }
+  },
+  "include": ["src"],
+  "exclude": ["vitest.config.ts", "node_modules"]
 }
+

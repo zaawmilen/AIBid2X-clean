@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import { env } from '../config/env';
+import { env } from '../config/env.js';
 
 export function getQueueConnection() {
   const url = new URL(env.REDIS_URL);

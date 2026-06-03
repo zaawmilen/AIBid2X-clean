@@ -1,7 +1,7 @@
-import Redis from 'ioredis';
-import { env } from '../config/env';
-import { logger } from './logger';
-import type { AuctionEvent } from './websocket';
+import { Redis } from 'ioredis';
+import { env } from '../config/env.js';
+import { logger } from './logger.js';
+import type { AuctionEvent } from './websocket.js';
 
 export const AUCTION_EVENTS_CHANNEL = 'auction:events';
 

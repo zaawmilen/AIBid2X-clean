@@ -1,6 +1,6 @@
 import {
   customType, index, numeric, pgEnum, pgTable,
-  text, timestamp, uuid, varchar,
+  text, timestamp, uuid, varchar, jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -57,19 +57,38 @@ export const bids = pgTable('bids', {
   auctionAmountIdx: index('bids_auction_amount_idx').on(t.auctionId, t.amount),
 }));
 
+export const bidRequests = pgTable('bid_requests', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  idempotencyKey: text('idempotency_key').notNull().unique(),
+  requesterId: uuid('requester_id').notNull(),
+  auctionId: uuid('auction_id').notNull(),
+  requestPayload: jsonb('request_payload').notNull(),
+  responsePayload: jsonb('response_payload'),
+  status: text('status').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   auctions: many(auctions),
   bids: many(bids),
+  bidRequests: many(bidRequests),
 }));
 
 export const auctionsRelations = relations(auctions, ({ one, many }) => ({
   seller: one(users, { fields: [auctions.sellerId], references: [users.id] }),
   bids: many(bids),
+  bidRequests: many(bidRequests),
 }));
 
 export const bidsRelations = relations(bids, ({ one }) => ({
   auction: one(auctions, { fields: [bids.auctionId], references: [auctions.id] }),
   bidder: one(users, { fields: [bids.bidderId], references: [users.id] }),
+}));
+
+export const bidRequestsRelations = relations(bidRequests, ({ one }) => ({
+  requester: one(users, { fields: [bidRequests.requesterId], references: [users.id] }),
+  auction: one(auctions, { fields: [bidRequests.auctionId], references: [auctions.id] }),
 }));
 
 export type User = typeof users.$inferSelect;
