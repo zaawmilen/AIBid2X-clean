@@ -1,2 +1,0 @@
-export declare const requestLogger: import("pino-http").HttpLogger<import("http").IncomingMessage, import("http").ServerResponse<import("http").IncomingMessage>, never>;
-//# sourceMappingURL=requestLogger.d.ts.map
