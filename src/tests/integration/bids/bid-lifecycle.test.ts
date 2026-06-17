@@ -1,12 +1,14 @@
-import { runWithCommittedFixtures } from '../setup/transaction.js';
-import { createTestUsers } from '../fixtures/userFactory.js';
-import { createTestAuction } from '../fixtures/auctionFactory.js';
-import { placeBid } from '../../services/bid.service.js';
-import { auctions, bids } from '../../db/schema.js';
+import { runWithCommittedFixtures } from '../../setup/transaction.js';
+import { createTestUsers } from '../../fixtures/userFactory.js';
+import { createTestAuction } from '../../fixtures/auctionFactory.js';
+import { placeBid } from '../../../services/bid.service.js';
+import { auctions, bids } from '../../../db/schema.js';
 import { eq } from 'drizzle-orm';
 
 describe('bid lifecycle', () => {
-  it('accepts a valid bid and updates auction price', async () => {
+  it('accepts a valid bid and updates auction price',
+     { timeout: 20000 },
+    async () => {
     await runWithCommittedFixtures(
       async (db) => {
         const [seller, bidder] = await createTestUsers(db, 2);

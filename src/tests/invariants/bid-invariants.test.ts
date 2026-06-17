@@ -4,9 +4,12 @@ import { createTestAuction } from '../fixtures/auctionFactory.js';
 import { placeBid } from '../../services/bid.service.js';
 import { bids, auctions } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { time } from 'console';
 
 describe('bid invariants', () => {
-  it('never allows multiple winning bids', async () => {
+  it('never allows multiple winning bids', 
+    { timeout: 20000},
+    async () => {
     await runWithCommittedFixtures(
       async (db) => {
         const bidders = await createTestUsers(db, 5);

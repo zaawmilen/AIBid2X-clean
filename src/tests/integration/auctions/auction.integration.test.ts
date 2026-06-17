@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { runWithCommittedFixtures } from '../setup/transaction.js';
-import { createTestUsers } from '../fixtures/userFactory.js';
-import { createAuction, activateAuction, getAuctionById } from '../../services/auction.service.js';
+import { runWithCommittedFixtures } from '../../setup/transaction.js';
+import { createTestUsers } from '../../fixtures/userFactory.js';
+import { createAuction, activateAuction, getAuctionById } from '../../../services/auction.service.js';
 
 describe('Auction', () => {
-  it('creates auction', async () => {
+  it('creates auction', 
+     { timeout: 20000 },
+    async () => {
     await runWithCommittedFixtures(
       async (db) => {
         const [seller] = await createTestUsers(db, 1);

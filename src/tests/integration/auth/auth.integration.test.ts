@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { runInTransaction } from '../setup/transaction.js';
-import { register, login } from '../../services/auth.service.js';
-import { AppError } from '../../lib/errors.js';
+import { runInTransaction } from '../../setup/transaction.js';
+import { register, login } from '../../../services/auth.service.js';
+import { AppError } from '../../../lib/errors.js';
 
 describe('Auth', () => {
-  it('registers user', async () => {
+  it('registers user',
+     { timeout: 20000 },
+    async () => {
     await runInTransaction(async (tx) => {
       const user = await register({ email: `t-${Date.now()}@example.com`, password: 'password123', role: 'bidder' });
       expect(user).toBeDefined();

@@ -2,11 +2,10 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { validate } from '../middleware/validate.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { requireRole } from '../middleware/requireRole.js';
-import { bidRateLimit } from '../middleware/rateLimiter.js';
 import { createAuctionSchema, listAuctionsSchema, auctionIdParamSchema, placeBidSchema } from '../validators/auction.js';
 import * as AuctionService from '../services/auction.service.js';
 import * as BidService from '../services/bid.service.js';
-
+import { bidRateLimit, globalUserBidRateLimit } from '../middleware/rateLimiter.js';
 import type { AccessTokenPayload } from '../lib/jwt.js';
 
 interface AuthenticatedRequest extends Request {
@@ -49,12 +48,28 @@ router.get('/:id/bids', validate(auctionIdParamSchema),
   }
 );
 
-// Bid route: tighter rate limit (10/60s) on top of global apiRateLimit
-router.post('/:id/bids', requireAuth, requireRole('bidder', 'admin'), bidRateLimit, validate(placeBidSchema),
+
+
+// Bid route: per-auction limit + global per-user limit
+router.post(
+  '/:id/bids',
+  requireAuth,
+  requireRole('bidder', 'admin'),
+  globalUserBidRateLimit,   // global: 30 bids/min across all auctions
+  bidRateLimit,             // local:  10 bids/min on this specific auction
+  validate(placeBidSchema),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try { res.status(201).json({ bid: await BidService.placeBid(req.params.id!, req.user!.sub, req.body.amount) }); }
-    catch (err) { next(err); }
-  }
+    try {
+      res.status(201).json({
+        bid: await BidService.placeBid(
+          req.params.id!,
+          req.user!.sub,
+          req.body.amount,
+          req.correlationId,
+        ),
+      });
+    } catch (err) { next(err); }
+  },
 );
 
 export { router as auctionRouter };

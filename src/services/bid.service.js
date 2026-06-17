@@ -30,13 +30,24 @@ export async function placeBid(auctionId, bidderId, amount) {
         await tx.update(bids).set({ status: 'outbid' })
             .where(and(eq(bids.auctionId, auctionId), sql `${bids.status} IN ('active', 'winning')`));
         const insertedBids = await tx.insert(bids)
-            .values({ auctionId, bidderId, amount: bidAmount.toFixed(2), status: 'active' })
+            .values({ auctionId, bidderId, amount: bidAmount.toFixed(2), status: 'winning' })
             .returning();
         const [bid] = insertedBids;
         if (!bid)
             throw AppError.badRequest('Failed to place bid', 'BID_CREATION_FAILED');
         await tx.update(auctions).set({ currentPrice: bidAmount.toFixed(2), updatedAt: new Date() }).where(eq(auctions.id, auctionId));
         logger.info({ auctionId, bidderId, amount: bidAmount.toFixed(2) }, 'Bid placed');
+
+        // Test-only debug: log bid rows for this auction so we can diagnose
+        // intermittent failures where no bid is left in 'winning' state.
+        try {
+            if (process.env.NODE_ENV === 'test') {
+                const rows = await tx.select().from(bids).where(eq(bids.auctionId, auctionId));
+                logger.info({ auctionId, bids: rows.map(function (r) { return ({ id: r.id, amount: r.amount, status: r.status }); }) }, 'Post-insert bid rows (tx)');
+            }
+        } catch (e) {
+            logger.error({ err: e, auctionId: auctionId }, 'Failed to read bids for debug');
+        }
         return { bid, previousHighestBidderId: previousHighest?.bidderId ?? null, auctionTitle: auction.title };
     });
     broadcastToAuction(auctionId, {

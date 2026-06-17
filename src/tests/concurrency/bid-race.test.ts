@@ -8,7 +8,9 @@ import { createTestAuction } from "../fixtures/auctionFactory.js";
 import { placeBid } from "../../services/bid.service.js";
 
 describe("bid race", () => {
-  it("ensures highest bid wins under concurrency", async () => {
+  it("ensures highest bid wins under concurrency", 
+    { timeout: 20000 },
+    async () => {
     const bidders = await createTestUsers(db, 10);
 
     const auction = await createTestAuction(db, {

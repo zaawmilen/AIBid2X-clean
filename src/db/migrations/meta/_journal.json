@@ -8,6 +8,27 @@
       "when": 1779711300526,
       "tag": "0000_outstanding_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779711300527,
+      "tag": "0001_add_bid_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779711300528,
+      "tag": "0002_one_winner_per_auction",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780921300529,
+      "tag": "0003_bid_events_audit_log",
+      "breakpoints": true
     }
   ]
 }

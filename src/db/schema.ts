@@ -90,6 +90,22 @@ export const bidRequestsRelations = relations(bidRequests, ({ one }) => ({
   requester: one(users, { fields: [bidRequests.requesterId], references: [users.id] }),
   auction: one(auctions, { fields: [bidRequests.auctionId], references: [auctions.id] }),
 }));
+// ── Bid audit log ──────────────────────────────────────────────────────────
+export const bidEvents = pgTable('bid_events', {
+  id:              uuid('id').primaryKey().defaultRandom(),
+  auctionId:       uuid('auction_id').notNull(),
+  bidderId:        uuid('bidder_id').notNull(),
+  amount:          numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  outcome:         text('outcome').notNull(),
+  rejectionReason: text('rejection_reason'),
+  bidId:           uuid('bid_id'),
+  correlationId:   text('correlation_id'),
+  createdAt:       timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type BidEvent   = typeof bidEvents.$inferSelect;
+export type NewBidEvent = typeof bidEvents.$inferInsert;
+
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

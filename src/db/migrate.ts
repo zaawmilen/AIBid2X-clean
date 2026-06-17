@@ -9,8 +9,8 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-async function runMigrations() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export async function runMigrations(connectionString?: string) {
+  const pool = new Pool({ connectionString: connectionString ?? process.env.DATABASE_URL });
   const db = drizzle(pool);
   console.log('▶ Running migrations...');
   await migrate(db, { migrationsFolder: join(__dirname, 'migrations') });
@@ -18,6 +18,7 @@ async function runMigrations() {
   await pool.end();
 }
 
+// If run directly, execute migrations using env DATABASE_URL
 runMigrations().catch((err) => {
   console.error('❌ Migration failed:', err.message);
   process.exit(1);

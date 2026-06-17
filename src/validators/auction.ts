@@ -22,8 +22,14 @@ export const createAuctionSchema = z.object({
 export const listAuctionsSchema = z.object({
   query: z.object({
     status: z.enum(['draft', 'active', 'ended', 'cancelled']).optional(),
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().max(100).default(20),
+    // ── Cursor-based pagination ──────────────────────────────────────────
+    // Pass `cursor` from a previous response's `nextCursor` to page forward.
+    // `cursor` and `page`/`limit` are mutually exclusive; cursor takes
+    // precedence when both are present.
+    cursor: z.string().optional(),
+    limit:  z.coerce.number().int().positive().max(100).default(20),
+    // Keep page/offset for backward compatibility — ignored when cursor present
+    page:   z.coerce.number().int().positive().default(1),
   }),
 });
 
@@ -37,20 +43,21 @@ export const placeBidSchema = z.object({
     amount: z
       .number({ invalid_type_error: 'amount must be a number' })
       .positive('Bid amount must be positive')
+      .max(9_999_999_999.99, 'Amount exceeds maximum allowed value')
       .multipleOf(0.01, 'Amount cannot have more than 2 decimal places'),
   }),
 });
 
-// ── NEW: List bids query (for GET /api/v1/bids/my) ────────────────────────────
 export const listBidsQuerySchema = z.object({
   query: z.object({
     status: z.enum(['active', 'outbid', 'winning', 'won', 'invalid']).optional(),
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().max(100).default(20),
+    cursor: z.string().optional(),
+    limit:  z.coerce.number().int().positive().max(100).default(20),
+    page:   z.coerce.number().int().positive().default(1),
   }),
 });
 
 export type CreateAuctionInput = z.infer<typeof createAuctionSchema>['body'];
-export type ListAuctionsQuery = z.infer<typeof listAuctionsSchema>['query'];
-export type PlaceBidInput = z.infer<typeof placeBidSchema>['body'];
-export type ListBidsQuery = z.infer<typeof listBidsQuerySchema>['query'];
+export type ListAuctionsQuery  = z.infer<typeof listAuctionsSchema>['query'];
+export type PlaceBidInput      = z.infer<typeof placeBidSchema>['body'];
+export type ListBidsQuery      = z.infer<typeof listBidsQuerySchema>['query'];

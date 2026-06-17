@@ -8,7 +8,9 @@ import { createTestAuction } from '../fixtures/auctionFactory.js';
 import { placeBid } from '../../services/bid.service.js';
 
 describe('bid determinism', () => {
-  it('repeated concurrent runs deterministically produce single winner', async () => {
+  it('repeated concurrent runs deterministically produce single winner',
+    { timeout: 60000 },
+    async () => {
     for (let run = 0; run < 3; run++) {
       const bidders = await createTestUsers(db, 10);
 

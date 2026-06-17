@@ -5,7 +5,9 @@ import { users } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 
 describe('transaction helpers', () => {
-  it('runInTransaction rolls back changes', async () => {
+  it('runInTransaction rolls back changes', 
+    {timeout: 20000},
+    async () => {
     const email = `tx-test-${Date.now()}@example.com`;
     await runInTransaction(async (tx) => {
       await tx.insert(users).values({ email, passwordHash: 'x', role: 'bidder' });

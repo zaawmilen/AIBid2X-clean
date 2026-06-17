@@ -1,7 +1,18 @@
 services:
+  # ----------------------------------------
+  # API Web Service
+  # ----------------------------------------
   - type: web
-    name: aibid2x
-    runtime: node
+    name: aibid2x-api
+    env: node
     buildCommand: npm install && npm run build
-    startCommand: node dist/server.js
-    envVarGroups: []
+    startCommand: node dist/src/index.js # Adjust path to your main entry point
+    
+  # ----------------------------------------
+  # Background Worker Service
+  # ----------------------------------------
+  - type: worker
+    name: aibid2x-worker
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/src/workers/index.js # Adjust path to your worker entry point
