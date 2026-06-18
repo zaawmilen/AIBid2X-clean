@@ -1,0 +1,33 @@
+# Dependencies — rebuilt in Docker
+node_modules/
+
+# Compiled output — rebuilt in Docker
+dist/
+
+# Environment secrets — never in image
+.env
+.env.*
+!.env.example
+
+# Version control
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Test files — not needed in production image
+src/tests/
+coverage/
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# k6 fixtures — contain test credentials
+src/tests/performance/fixtures.json

@@ -117,8 +117,11 @@ GET    /api/v1/metrics                     # queue depths + system stats
 GET    /api/v1/docs                        # Swagger UI
 GET    /healthz                            # liveness
 GET    /readyz                             # readiness (DB + Redis)
-```
 
+```
+> **Note on AI features:** The search and analysis endpoints are fully implemented
+> but use mock embeddings in the current deployment. To enable live AI features,
+> set `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` — no code changes required.
 ---
 
 ## Local setup

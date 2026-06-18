@@ -5,3 +5,5 @@ dist/
 *.log
 aibid2x.zip
 aibid2x.zip
+dist/
+.env
