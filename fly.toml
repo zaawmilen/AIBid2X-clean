@@ -1,4 +1,4 @@
-app            = 'auction-platform'
+app = "aibid2x-clean"
 primary_region = 'sjc'
 
 [build]

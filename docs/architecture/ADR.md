@@ -260,45 +260,125 @@ Redis Pub/Sub acts as a cross-process event bridge:
 
 ---
 
-# ADR-008: Deployment Topology — Render + Supabase + Upstash
+# ADR-008: Deployment Topology — Fly.io + Supabase + Upstash
 
-**Status:** Accepted  
-*(Supersedes initial Fly.io decision — migrated to Render for simpler process group management)*
+**Status:** Accepted
 
 ## Context
 
-Requirements:
-- Separate API and worker processes
-- PostgreSQL with pgvector extension
-- Managed Redis with TLS
-- Cost-efficient deployment suitable for portfolio and low-traffic production
+The application requires a production deployment architecture that supports:
+
+* Independent API and background worker processes
+* PostgreSQL with the `pgvector` extension for AI and semantic search features
+* Managed Redis with TLS support for queues, caching, rate limiting, and distributed coordination
+* Automated database migrations during deployment
+* Docker-based deployments with minimal operational complexity
+* Cost-effective infrastructure suitable for both portfolio demonstrations and low-to-medium traffic production workloads
 
 ## Decision
 
-| Layer | Service |
-|-------|---------|
-| Compute | Render (two web services: `api` + `worker`) |
-| Database | Supabase PostgreSQL + pgvector |
-| Redis | Upstash Redis (TLS, `rediss://`) |
+| Layer    | Service                                                                |
+| -------- | ---------------------------------------------------------------------- |
+| Compute  | Fly.io (`sjc` region) using separate `app` and `worker` process groups |
+| Database | Supabase PostgreSQL with `pgvector`                                    |
+| Redis    | Upstash Redis using TLS (`rediss://`)                                  |
 
-Deployment: `render.yaml` defines both services. `dist/` is committed to the repository to ensure the service starts correctly even if the Render build step is misconfigured.
+The application is deployed as a single Fly.io application with multiple process groups:
 
-`DB_POOL_MAX=12` — kept below Supabase's session-mode pooler ceiling (15 concurrent sessions), identified via load testing. Switching to Supabase's transaction-mode pooler (port 6543) is the recommended next step for higher concurrency.
+* **app** — serves the HTTP API and WebSocket connections.
+* **worker** — processes asynchronous jobs, scheduled tasks, notifications, and background workflows.
 
-## Alternatives considered
+Database migrations execute automatically during each deployment using Fly.io's release phase:
 
-- Fly.io — initially used; migrated to Render for simpler configuration and process management
-- Railway — evaluated; less flexible process separation
-- Neon — evaluated; pgvector support available but less mature at time of decision
-- Redis Cloud — evaluated; Upstash preferred for serverless billing model
+```toml
+[deploy]
+release_command = "node dist/db/migrate.js"
+```
+
+Traffic is routed only after the application passes the `/readyz` readiness check, ensuring that both PostgreSQL and Redis are available before serving requests.
+
+Connection pooling is intentionally configured with:
+
+```text
+DB_POOL_MAX=12
+```
+
+This value remains below Supabase's session-mode connection pool limit (15 concurrent sessions), based on load-testing results. If future traffic requires higher concurrency, the preferred upgrade path is migrating to Supabase's transaction-mode pooler (port `6543`) before increasing pool sizes.
+
+## Alternatives Considered
+
+### Render
+
+Advantages:
+
+* Simpler service management
+* Excellent developer experience
+* Native support for web services and workers
+
+Reasons not selected:
+
+* Fly.io provides greater control over deployment topology, process groups, networking, and infrastructure configuration while maintaining comparable operational simplicity.
+
+### Railway
+
+Advantages:
+
+* Fastest deployment workflow
+* Excellent developer experience
+
+Reasons not selected:
+
+* Usage-based pricing is less predictable.
+* Less infrastructure control compared to Fly.io for production-oriented deployments.
+
+### Neon PostgreSQL
+
+Advantages:
+
+* Serverless PostgreSQL
+* Native branching support
+
+Reasons not selected:
+
+* Supabase provides mature `pgvector` support, an integrated management experience, and aligns better with the application's AI roadmap.
+
+### Redis Cloud
+
+Advantages:
+
+* Mature managed Redis offering
+
+Reasons not selected:
+
+* Upstash provides serverless pricing, built-in TLS support, and sufficient performance for the application's expected workload.
 
 ## Consequences
 
-- Separate deployment lifecycle for API and workers (two Render services).
-- Managed infrastructure with minimal operational overhead.
-- `DB_POOL_MAX=12` limits concurrency under high load — transaction-mode pooling is the next infrastructure improvement.
+### Positive
 
----
+* Independent scaling of API and background worker processes.
+* Docker-based deployments ensure environment consistency between development and production.
+* Automated database migrations reduce deployment risk.
+* Managed PostgreSQL and Redis minimize infrastructure maintenance.
+* Readiness checks prevent traffic from reaching instances before dependencies are available.
+* The architecture is well suited for future horizontal scaling and additional worker process groups.
+
+### Trade-offs
+
+* Operating Fly.io requires slightly more infrastructure knowledge than platforms such as Render or Railway.
+* Separate process groups consume independent compute resources.
+* `DB_POOL_MAX=12` intentionally limits maximum database concurrency until transaction-mode pooling is adopted.
+
+## Future Evolution
+
+Potential infrastructure improvements include:
+
+* Migrating to Supabase transaction-mode pooling (`6543`) for higher concurrent workloads.
+* Running multiple worker instances for queue throughput.
+* Multi-region Fly.io deployment for reduced global latency.
+* Centralized observability using OpenTelemetry and Grafana.
+* Autoscaling worker process groups based on queue depth.
+
 
 # Guiding Principles
 

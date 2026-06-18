@@ -2,8 +2,8 @@
 
 Production-grade auction platform with AI-powered search. Built as a portfolio project to demonstrate backend engineering depth — not a tutorial clone.
 
-**Live API:** https://aibid2x.onrender.com/api/v1/docs  
-**Health:** https://aibid2x.onrender.com/readyz
+**Live API:** https://aibid2x-clean.fly.dev/api/v1/docs  
+**Health:** https://aibid2x-clean.fly.dev/readyz
 
 ---
 
@@ -75,13 +75,13 @@ Outcomes tracked: `accepted` · `rejected_too_low` · `rejected_ended` · `rejec
 | Validation | Zod |
 | Logging | Pino + pino-http |
 | Load testing | k6 |
-| Deploy | Render + Supabase + Upstash |
+| Deploy | fly.io + Supabase + Upstash |
 
 ---
 
 ## API
 
-Interactive docs (Swagger UI): **https://aibid2x.onrender.com/api/v1/docs**
+Interactive docs (Swagger UI): **https://aibid2x-clean.fly.dev/api/v1/docs**
 
 ### Demo credentials
 
@@ -387,18 +387,41 @@ Full decision records with context, alternatives considered, and consequences: [
 | ADR-005 | BullMQ with `safeQueueAdd()` fire-and-forget | Queue failures never surface to the HTTP response path |
 | ADR-006 | Hybrid search (pgvector + FTS) + Reciprocal Rank Fusion | Better recall than either signal alone; no external search infrastructure |
 | ADR-007 | Redis pub/sub as cross-process WebSocket event bridge | Workers fan out to all WebSocket clients via API instances |
-| ADR-008 | Render + Supabase + Upstash | Separate API and worker processes; managed pgvector and Redis |
+| ADR-008 | fly.io + Supabase + Upstash | Separate API and worker processes; managed pgvector and Redis |
 
 ---
 
 ## Deployment
 
-Deployed on **Render** with **Supabase** (PostgreSQL + pgvector) and **Upstash** (Redis).
+Deployed on **Fly.io** (`sjc` region, co-located with Supabase `us-west-2`) with **Supabase** (PostgreSQL + pgvector) and **Upstash** (Redis).
 
-- `DB_POOL_MAX=12` — kept below Supabase's session-mode pooler ceiling (15). Transaction-mode pooling (port 6543) is the recommended next step for higher concurrency
+- API and worker run as separate Fly.io processes (`app` + `worker`) defined in `fly.toml` — each gets its own VM
+- `DB_POOL_MAX=6` per process — two processes × 6 = 12 max connections, below Supabase's session-mode pooler ceiling (15). Transaction-mode pooling (port 6543) is the recommended next step
 - Redis uses `rediss://` (TLS) — required by Upstash
-- Workers run as a separate Render service (`npm run worker`)
-- `dist/` is committed to git — ensures the service starts even if the Render build step is misconfigured
+- `dist/` is built inside Docker at deploy time — not committed to git
+- Release command runs migrations before traffic is switched: `node dist/db/migrate.js`
+- Health check: `/readyz` (DB + Redis) gates traffic; `/healthz` (liveness only) used by Docker `HEALTHCHECK`
+- All secrets managed via `fly secrets set` — never in committed files
+
+### Deploying
+
+```bash
+# Set secrets (one time)
+fly secrets set \
+  DATABASE_URL="..." \
+  REDIS_URL="rediss://..." \
+  JWT_ACCESS_SECRET="..." \
+  JWT_REFRESH_SECRET="..." \
+  OPENAI_API_KEY="..." \
+  ANTHROPIC_API_KEY="..."
+
+# Deploy
+fly deploy
+
+# Check status
+fly status
+fly logs
+```
 
 ---
 
