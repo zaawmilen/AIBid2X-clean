@@ -1,18 +1,24 @@
 services:
-  # ----------------------------------------
-  # API Web Service
-  # ----------------------------------------
+  # 1. Web API Service
   - type: web
     name: aibid2x-api
     env: node
     buildCommand: npm install && npm run build
-    startCommand: node dist/src/index.js # Adjust path to your main entry point
-    
-  # ----------------------------------------
-  # Background Worker Service
-  # ----------------------------------------
+    startCommand: node dist/server.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+
+  # 2. Background Worker Service 
   - type: worker
     name: aibid2x-worker
     env: node
     buildCommand: npm install && npm run build
-    startCommand: node dist/src/workers/index.js # Adjust path to your worker entry point
+    startCommand: node dist/worker.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
