@@ -268,21 +268,21 @@ Explore the API and project resources.
 <p><br>
 
 <strong>Swagger UI</strong><br>
-<a href="/api-docs">/api-docs</a>
+<a href="/api/v1/docs">/api/v1/docs</a>
 
 </p>
 
 <p><br>
 
 <strong>Health Check</strong><br>
-<a href="/health">/health</a>
+<a href="/healthz">/healthz</a>
 
 </p>
 
 <p><br>
 
 <strong>Readiness Probe</strong><br>
-<a href="/ready">/ready</a>
+<a href="/readyz">/readyz</a>
 
 </p>
 
@@ -395,7 +395,7 @@ Node.js
 
 <div class="footer">
 
-Built by <strong>Zaaw</strong><br><br>
+Built by <strong>Zewdie k. Gebrehiwot</strong><br><br>
 
 AIBid2X demonstrates modern backend engineering practices including
 distributed processing, asynchronous job execution, scalable architecture,
