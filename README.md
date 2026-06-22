@@ -194,7 +194,7 @@ curl "http://localhost:3000/api/v1/auctions?limit=3" | jq '.pagination'
 
 ## Performance & load testing
 
-Load-tested with a custom k6 suite covering four scenarios. Full methodology and findings in [`docs/performance/performance_report.md`](docs/performance/PERFORMANCE_REPORT.md).
+Load-tested with a custom k6 suite covering four scenarios. Full methodology and findings in [`docs/performance/performance_report.md`](docs/performance/performance_report.md).
 
 ### Key results
 
