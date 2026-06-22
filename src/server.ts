@@ -26,7 +26,7 @@ async function bootstrap() {
 
   createWebSocketServer(httpServer);
 
-  httpServer.listen(env.PORT, () => {
+  httpServer.listen(env.PORT, '0.0.0.0', () => {
     logger.info({ port: env.PORT }, "Server running");
   });
 
