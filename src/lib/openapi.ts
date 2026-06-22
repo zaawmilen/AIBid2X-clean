@@ -18,10 +18,23 @@ A portfolio project demonstrating backend engineering depth:
 
 Built with: Node.js · TypeScript · Express · PostgreSQL · pgvector · Redis · BullMQ · OpenAI · Anthropic
     `.trim(),
-    contact: { name: 'AIBid2X', url: 'https://aibid2x.fly.dev' },
-  },
+    contact: { name: 'AIBid2X', url: 'https://aibid2x-clean.fly.dev' },
+    // 👇 Custom UI metadata
+    'x-logo': {
+      url: 'https://aibid2x-clean.fly.dev/logo.png',
+      backgroundColor: '#0d1117',
+      altText: 'AIBid2X Logo'
+    },
+    'x-theme': {
+      primaryColor: '#3b82f6',
+      secondaryColor: '#6366f1',
+      fontFamily: 'Inter, Roboto, sans-serif',
+      layout: 'sidebar', // sidebar navigation
+      darkMode: true     // enable dark mode toggle
+    }
+  } as any, 
   servers: [
-    { url: 'https://aibid2x.fly.dev/api/v1',  description: 'Production (Fly.io)' },
+    { url: 'https://aibid2x-clean.fly.dev/api/v1',  description: 'Production (Fly.io)' },
     { url: 'http://localhost:3000/api/v1',      description: 'Local development' },
   ],
   tags: [
@@ -430,4 +443,13 @@ Falls back to keyword-only search if embeddings are unavailable.`,
       },
     },
   },
-};
+  'x-swagger-ui': {
+    filter: true,              // enable search bar
+    docExpansion: 'none',      // collapse by default
+    displayRequestDuration: true,
+    syntaxHighlight: { theme: 'monokai' },
+    tryItOutEnabled: true,
+    showExtensions: true,
+    showCommonExtensions: true
+  }
+} as any;
