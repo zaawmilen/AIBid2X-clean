@@ -17,14 +17,19 @@ A portfolio project demonstrating backend engineering depth:
 - **Cursor-based pagination** for scalable auction listings
 
 Built with: Node.js · TypeScript · Express · PostgreSQL · pgvector · Redis · BullMQ · OpenAI · Anthropic
+
+### Try it out
+| Email | Role | Password |
+|-------|------|----------|
+| k6seller@aibid2x.com | seller | Test@1234 |
+| k6bidder1@aibid2x.com | bidder | Test@1234 |
+| k6bidder2@aibid2x.com | bidder | Test@1234 |
+
+> **Note:** AI search and analysis use mock fallback in production. Architecture is fully implemented — set OPENAI_API_KEY and ANTHROPIC_API_KEY to enable live AI features.
     `.trim(),
     contact: { name: 'AIBid2X', url: 'https://aibid2x-clean.fly.dev' },
     // 👇 Custom UI metadata
-    'x-logo': {
-      url: 'https://aibid2x-clean.fly.dev/logo.png',
-      backgroundColor: '#0d1117',
-      altText: 'AIBid2X Logo'
-    },
+
     'x-theme': {
       primaryColor: '#3b82f6',
       secondaryColor: '#6366f1',
@@ -334,7 +339,7 @@ Use \`page\` + \`limit\`. Returns \`total\` and \`pages\`.`,
         summary: 'Place a bid',
         description: `Places a bid on an active auction.
 
-**Concurrency safety**: Uses SELECT FOR UPDATE row-level locking + CAS (Compare-And-Swap) gate + PostgreSQL advisory locks to guarantee exactly one winner under concurrent load across multiple application instances.
+**Concurrency safety**: Uses SELECT FOR UPDATE row-level locking + CAS (Compare-And-Swap) gate to guarantee exactly one winner under concurrent load across multiple application instances.
 
 **Rate limits**: 10 bids/min per auction + 30 bids/min globally per user.
 
