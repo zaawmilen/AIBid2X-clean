@@ -39,7 +39,7 @@ Built with: Node.js · TypeScript · Express · PostgreSQL · pgvector · Redis 
     }
   } as any, 
   servers: [
-    { url: 'https://aibid2x-clean.fly.dev/api/v1', description: 'Production (Fly.io)' },
+    { url: 'https://aibid2x-clean.fly.dev', description: 'Production (Fly.io)' },
     { url: 'https://aibid2x-clean.fly.dev',     description: 'Production — root (health endpoints)' },
     { url: 'http://localhost:3000/api/v1',     description: 'Local development' },
     { url: 'http://localhost:3000',            description: 'Local — root (health endpoints)' },
