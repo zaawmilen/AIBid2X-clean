@@ -50,7 +50,7 @@ export function createAuctionWorker() {
 
     logger.info({ auctionId, winnerId: winningBid?.bidderId ?? null }, 'Auction expired and ended');
     return { winnerId: winningBid?.bidderId ?? null };
-  }, { connection, concurrency: 5 });
+  }, { connection, concurrency: 5, drainDelay: 5000 });
 
   worker.on('completed', (job) => logger.info({ jobId: job.id }, 'Auction expiry completed'));
   worker.on('failed', (job, err) => logger.error({ jobId: job?.id, err }, 'Auction expiry failed'));
