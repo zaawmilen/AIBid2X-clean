@@ -39,8 +39,10 @@ Built with: Node.js · TypeScript · Express · PostgreSQL · pgvector · Redis 
     }
   } as any, 
   servers: [
-    { url: 'https://aibid2x-clean.fly.dev/api/v1',  description: 'Production (Fly.io)' },
-    { url: 'http://localhost:3000/api/v1',      description: 'Local development' },
+    { url: 'https://aibid2x-clean.fly.dev/api/v1', description: 'Production (Fly.io)' },
+    { url: 'https://aibid2x-clean.fly.dev',     description: 'Production — root (health endpoints)' },
+    { url: 'http://localhost:3000/api/v1',     description: 'Local development' },
+    { url: 'http://localhost:3000',            description: 'Local — root (health endpoints)' },
   ],
   tags: [
     { name: 'Health',    description: 'Liveness and readiness probes' },
@@ -130,7 +132,7 @@ Built with: Node.js · TypeScript · Express · PostgreSQL · pgvector · Redis 
 
   paths: {
     // ── Health ──────────────────────────────────────────────────────────────
-    '/healthz': {
+    '/healthz': {  // mounted at root: https://aibid2x-clean.fly.dev/healthz
       get: {
         tags: ['Health'],
         summary: 'Liveness probe',
@@ -140,7 +142,7 @@ Built with: Node.js · TypeScript · Express · PostgreSQL · pgvector · Redis 
         },
       },
     },
-    '/readyz': {
+    '/readyz': {   // mounted at root: https://aibid2x-clean.fly.dev/readyz
       get: {
         tags: ['Health'],
         summary: 'Readiness probe',
