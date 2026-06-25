@@ -17,23 +17,48 @@ router.get('/', async (req: Request, res: Response) => {
     const searchStart = Date.now();
 
     const queryEmbedding = await embedText(q);
-    const vectorLiteral = `[${queryEmbedding.join(',')}]`;
+    const isMockEmbedding = queryEmbedding.every(v => v === 0);
 
     const pool = new Pool({ connectionString: env.DATABASE_URL, max: 2 });
-    const result = await pool.query(
-      `SELECT
-        a.id, a.title, a.description, a.current_price,
-        a.status, a.end_time, u.email AS seller_email,
-        ROUND((1 - (a.embedding <=> $1::vector))::numeric, 4) AS similarity
-       FROM auctions a
-       JOIN users u ON u.id = a.seller_id
-       WHERE a.status = 'active'
-         AND a.embedding IS NOT NULL
-         AND (1 - (a.embedding <=> $1::vector)) >= $2
-       ORDER BY a.embedding <=> $1::vector
-       LIMIT $3`,
-      [vectorLiteral, minSimilarity, limit],
-    );
+    let result;
+
+    if (!isMockEmbedding) {
+      // ── Vector path (real OpenAI embeddings available) ──────────────────
+      const vectorLiteral = `[${queryEmbedding.join(',')}]`;
+      result = await pool.query(
+        `SELECT
+          a.id, a.title, a.description, a.current_price,
+          a.status, a.end_time, u.email AS seller_email,
+          ROUND((1 - (a.embedding <=> $1::vector))::numeric, 4) AS similarity
+         FROM auctions a
+         JOIN users u ON u.id = a.seller_id
+         WHERE a.status = 'active'
+           AND a.embedding IS NOT NULL
+           AND (1 - (a.embedding <=> $1::vector)) >= $2
+         ORDER BY a.embedding <=> $1::vector
+         LIMIT $3`,
+        [vectorLiteral, minSimilarity, limit],
+      );
+    } else {
+      // ── FTS fallback (mock embeddings — keyword search only) ─────────────
+      result = await pool.query(
+        `SELECT
+          a.id, a.title, a.description, a.current_price,
+          a.status, a.end_time, u.email AS seller_email,
+          ROUND(ts_rank(
+            to_tsvector('english', a.title || ' ' || COALESCE(a.description, '')),
+            plainto_tsquery('english', $1)
+          )::numeric, 4) AS similarity
+         FROM auctions a
+         JOIN users u ON u.id = a.seller_id
+         WHERE a.status = 'active'
+           AND to_tsvector('english', a.title || ' ' || COALESCE(a.description, ''))
+               @@ plainto_tsquery('english', $1)
+         ORDER BY similarity DESC
+         LIMIT $2`,
+        [q, limit],
+      );
+    }
     await pool.end();
 
     logger.info({ query: q, resultsCount: result.rows.length, searchDurationMs: Date.now() - searchStart }, 'Semantic search completed');
