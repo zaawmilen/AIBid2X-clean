@@ -19,7 +19,7 @@ export function createNotificationWorker() {
     }
     logger.warn({ jobName: job.name }, 'Unknown notification job — skipping');
     return { skipped: true };
-  }, { connection, concurrency: 10 });
+  }, { connection, concurrency: 10, drainDelay: 5000 });
 
   worker.on('failed', (job, err) => logger.error({ jobId: job?.id, err }, 'Notification job failed'));
   return worker;

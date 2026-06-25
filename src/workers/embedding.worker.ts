@@ -28,7 +28,7 @@ export function createEmbeddingWorker() {
       logger.info({ auctionId, dimensions: embedding.length }, '[EMBED] Embedding stored in pgvector');
       return { auctionId, status: 'embedded', dimensions: embedding.length };
     },
-    { connection, concurrency: 3 },
+    { connection, concurrency: 3, drainDelay: 5000 },
   );
 
   worker.on('completed', (job, result) => logger.info({ jobId: job.id, result }, 'Embedding job completed'));
