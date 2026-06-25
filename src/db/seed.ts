@@ -267,7 +267,7 @@ async function seed() {
    │ diana@aibid2x.demo          │ bidder       │ Demo1234!│
    └─────────────────────────────┴──────────────┴──────────┘
 
-   Try it: https://aibid2x.fly.dev/api/v1/docs
+   Try it: https://aibid2x-clean.fly.dev/api/v1/docs
   `);
 
   await pool.end();

@@ -87,9 +87,11 @@ Interactive docs (Swagger UI): **https://aibid2x-clean.fly.dev/api/v1/docs**
 
 | Email | Role | Password |
 |-------|------|----------|
-| `k6seller@aibid2x.com` | seller | `Test@1234` |
-| `k6bidder1@aibid2x.com` | bidder | `Test@1234` |
-| `k6bidder2@aibid2x.com` | bidder | `Test@1234` |
+| `seller@aibid2x.demo` | seller | `Demo1234!` |
+| `alice@aibid2x.demo` | bidder | `Demo1234!` |
+| `bob@aibid2x.demo` | bidder | `Demo1234!` |
+| `charlie@aibid2x.demo` | bidder | `Demo1234!` |
+| `diana@aibid2x.demo` | bidder | `Demo1234!` |
 
 ### Key endpoints
 

@@ -21,9 +21,9 @@ Built with: Node.js · TypeScript · Express · PostgreSQL · pgvector · Redis 
 ### Try it out
 | Email | Role | Password |
 |-------|------|----------|
-| k6seller@aibid2x.com | seller | Test@1234 |
-| k6bidder1@aibid2x.com | bidder | Test@1234 |
-| k6bidder2@aibid2x.com | bidder | Test@1234 |
+| seller@aibid2x.demo | seller | Demo1234! |
+| alice@aibid2x.demo | bidder | Demo1234! |
+| bob@aibid2x.demo | bidder | Demo1234! |
 
 > **Note:** AI search and analysis use mock fallback in production. Architecture is fully implemented — set OPENAI_API_KEY and ANTHROPIC_API_KEY to enable live AI features.
     `.trim(),
