@@ -1,4 +1,4 @@
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, count } from 'drizzle-orm';
 import { Decimal } from 'decimal.js';
 import { db } from '../db/index.js';
 import { auctions, bids, users } from '../db/schema.js';
@@ -371,4 +371,93 @@ export async function placeBid(
   }
 
   return result.bid;
+}
+// ── Get My Bids ───────────────────────────────────────────────────────────────
+
+interface GetMyBidsOptions {
+  page: number;
+  limit: number;
+  status?: string;
+}
+
+export async function getMyBids(bidderId: string, { page, limit, status }: GetMyBidsOptions) {
+  const offset = (page - 1) * limit;
+
+  const validStatuses = ['active', 'outbid', 'winning', 'won', 'invalid'] as const;
+  type BidStatus = typeof validStatuses[number];
+
+  const statusFilter =
+    status && validStatuses.includes(status as BidStatus)
+      ? eq(bids.status, status as BidStatus)
+      : undefined;
+
+  const whereClause = statusFilter
+    ? and(eq(bids.bidderId, bidderId), statusFilter)
+    : eq(bids.bidderId, bidderId);
+
+  const [rows, countResult] = await Promise.all([
+    db.select({
+        id:        bids.id,
+        amount:    bids.amount,
+        status:    bids.status,
+        createdAt: bids.createdAt,
+        auction: {
+          id:           auctions.id,
+          title:        auctions.title,
+          status:       auctions.status,
+          currentPrice: auctions.currentPrice,
+          endTime:      auctions.endTime,
+        },
+      })
+      .from(bids)
+      .innerJoin(auctions, eq(bids.auctionId, auctions.id))
+      .where(whereClause)
+      .orderBy(desc(bids.createdAt))
+      .limit(limit)
+      .offset(offset),
+
+    db.select({ total: count() }).from(bids).where(whereClause),
+  ]);
+
+  return {
+    bids: rows,
+    pagination: {
+      page,
+      limit,
+      total: Number(countResult?.[0]?.total ?? 0),
+      pages: Math.ceil(Number(countResult?.[0]?.total ?? 0) / limit),
+    },
+  };
+}
+
+// ── Get Bid By ID ─────────────────────────────────────────────────────────────
+
+export async function getBidById(bidId: string, requesterId: string, requesterRole: string) {
+  const [row] = await db
+    .select({
+      id:        bids.id,
+      amount:    bids.amount,
+      status:    bids.status,
+      createdAt: bids.createdAt,
+      bidderId:  bids.bidderId,
+      auction: {
+        id:           auctions.id,
+        title:        auctions.title,
+        status:       auctions.status,
+        currentPrice: auctions.currentPrice,
+        endTime:      auctions.endTime,
+      },
+    })
+    .from(bids)
+    .innerJoin(auctions, eq(bids.auctionId, auctions.id))
+    .where(eq(bids.id, bidId))
+    .limit(1);
+
+  if (!row) throw AppError.notFound('Bid');
+
+  if (requesterRole !== 'admin' && row.bidderId !== requesterId) {
+    throw AppError.forbidden('You do not have access to this bid');
+  }
+
+  return row;
 }

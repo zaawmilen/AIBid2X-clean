@@ -25,7 +25,7 @@ router.get('/my', requireAuth, requireRole('bidder', 'admin'),
       const { page = 1, limit = 20, status } = req.query as {
         page?: number; limit?: number; status?: string;
       };
-      const result = await (BidService as any).listBids(req.user!.sub, { page: Number(page), limit: Number(limit), ...(status && { status }) });
+      const result = await BidService.getMyBids(req.user!.sub, { page: Number(page), limit: Number(limit), ...(status && { status }) });
       res.status(200).json(result);
     } catch (err) { next(err); }
   }
@@ -39,7 +39,7 @@ router.get('/my', requireAuth, requireRole('bidder', 'admin'),
 router.get('/:id', requireAuth,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const bid = await (BidService as any).getBidById(req.params.id!, req.user!.sub, req.user!.role);
+      const bid = await BidService.getBidById(req.params.id!, req.user!.sub, req.user!.role);
       res.status(200).json({ bid });
     } catch (err) { next(err); }
   }
