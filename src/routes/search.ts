@@ -17,12 +17,12 @@ router.get('/', async (req: Request, res: Response) => {
     const searchStart = Date.now();
 
     const queryEmbedding = await embedText(q);
-    const isMockEmbedding = queryEmbedding.every(v => v === 0);
+    const hasRealEmbeddings = Boolean(env.OPENAI_API_KEY && env.OPENAI_API_KEY.startsWith('sk-'));
 
     const pool = new Pool({ connectionString: env.DATABASE_URL, max: 2 });
     let result;
 
-    if (!isMockEmbedding) {
+    if (hasRealEmbeddings) {
       // ── Vector path (real OpenAI embeddings available) ──────────────────
       const vectorLiteral = `[${queryEmbedding.join(',')}]`;
       result = await pool.query(

@@ -41,7 +41,7 @@ export async function embedText(
   text: string,
   context: { auctionId?: string } = {},
 ): Promise<number[]> {
-  if (env.OPENAI_API_KEY && env.OPENAI_API_KEY.startsWith('sk-')) {
+  if (env.OPENAI_API_KEY && typeof env.OPENAI_API_KEY === 'string' && env.OPENAI_API_KEY.startsWith('sk-')) {
     return generateRealEmbedding(text, context);
   }
   logger.info({ textLength: text.length, ...context }, '[EMBED] Using mock embedding (no OPENAI_API_KEY)');
